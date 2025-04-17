@@ -37,7 +37,7 @@ typedef struct subband_info{
 }subband_info;
 
 typedef struct tile{
-    std::vector<std::vector<double>> tile_data;
+    vector<double> tile_data;
     point anchor;
     size_t height;
     size_t width;
