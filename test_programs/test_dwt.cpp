@@ -27,12 +27,12 @@ int main(){
     int height = 17;
     int width = 13;
     FDWT my_dwt(example_block, tile_origin, 2, height, width);
-    vector<double> transformed = my_dwt.get_transformed();
+    vector<double> f_transformed = my_dwt.get_transformed();
 
     cout << "Transformed: " << endl;
-    my_dwt.print_2D_vector(transformed, height, width);
+    my_dwt.print_2D_vector(f_transformed, height, width);
 
-    IDWT my_idwt(transformed, tile_origin, 2, height, width);
+    IDWT my_idwt(f_transformed, tile_origin, 2, height, width);
     vector<double> reconstructed = my_idwt.get_image();
 
     cout << "Reconstructed: " << endl;

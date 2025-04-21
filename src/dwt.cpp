@@ -26,29 +26,39 @@ vector<double> FDWT::multi_level_dwt(vector<double> &img, int lvls){
     int m = rows;
     int n = cols;
     vector<double> ll;
-    vector<double> a(m*n, 0);
+    vector<double> a(rows*cols, 0);
 
     ll = img;
     for(int i=0; i < lvls; i++){
         vector<double> a_b;
+        // cout << "LL: \n";
+        // print_2D_vector(ll, m, n);
+
         a_b = sd2d(ll, m, n);
+        // cout << "a_b: \n";
+        // print_2D_vector(a_b, m, n);
 
         // Copy a_b into a
         for(int i=0; i<m; i++){
             for(int j=0; j<n; j++){
-                a[i*n + j] = a_b[i*n + j];
+                a[i*cols + j] = a_b[i*n + j];
             }
         }
+        // cout << "A:\n";
+        // print_2D_vector(a, rows, cols);
 
         // Extract ll from a_b
-        m = (m+1)/2;
-        n = (n+1)/2;
+        int new_m = (m+1)/2;
+        int new_n = (n+1)/2;
         ll.clear();
-        for(int i = 0; i < m; i++){
-            for(int j=0; j < n; j++){
+        ll.resize(0);
+        for(int i = 0; i < new_m; i++){
+            for(int j=0; j < new_n; j++){
                 ll.push_back(a_b[i*n + j]);
             }
         }
+        m = new_m;
+        n = new_n;
     }
     return a;
 }
@@ -262,7 +272,7 @@ void FDWT::print_2D_vector(vector<double> &a, int height, int width){
     cout << fixed << setprecision(2);
     for(int i=0; i<height; i++){
         for(int j=0; j<width; j++){
-            cout << a[i*width + j] << "\t";
+            cout << (int)a[i*width + j] << "\t";
         }
         cout << endl;
     }
@@ -296,6 +306,8 @@ IDWT::IDWT(vector<double> &t, point o, int lvl, int height, int width){
     level = lvl;
     origin = o;
     transformed = t;
+    cout << "Transformed in the constructuor\n";
+    print_2D_vector(t, height, width);
     rows = height;
     cols = width;
     extent.x = cols + origin.x;
@@ -309,21 +321,30 @@ vector<double> IDWT::get_image(){
 
 vector<double> IDWT::multilevel_idwt(vector<double> &t, int lvl){
     
+    cout << "Rows: " << rows << ", Cols: " << cols << endl;
+    cout << "T: \n";
+    print_2D_vector(t, rows, cols);
+
     for(int i=lvl; i > 0; i--){
         point subband_boundary;
         subband_boundary.x = min(cols, (cols + 1) / (1 << (i-1)));
         subband_boundary.y = min(rows, (rows + 1) / (1 << (i-1)));
 
+        cout << "\nSubband Boundary: (" << subband_boundary.x << ", " << subband_boundary.y << ")\n";
+
         vector<double> subband(subband_boundary.y * subband_boundary.x, 0);
         for(int i=0; i<subband_boundary.y; i++){
             for(int j=0; j<subband_boundary.x; j++){
-                subband[i*subband_boundary.x + j] = t[i*subband_boundary.x + j];
+                subband[i*subband_boundary.x + j] = t[i*cols + j];
             }
         }
+        cout << "Subband " << lvl << ":\n";
+        print_2D_vector(subband, subband_boundary.y, subband_boundary.x);
+
         subband = sr2d(subband, subband_boundary.y, subband_boundary.x);
         for(int i=0; i<subband_boundary.y; i++){
             for(int j=0; j<subband_boundary.x; j++){
-                t[i*subband_boundary.x + j] = subband[i*subband_boundary.x + j];
+                t[i*cols + j] = subband[i*subband_boundary.x + j];
             }
         }
     }
@@ -531,7 +552,8 @@ void IDWT::print_2D_vector(vector<double> &a, int height, int width){
     cout << fixed << setprecision(2);
     for(int i=0; i<height; i++){
         for(int j=0; j<width; j++){
-            cout << a[i*width + height] << "\t";
+            int val = static_cast<int>(round(a[i*width + j]));
+            cout << val << "\t";
         }
         cout << endl;
     }
@@ -540,7 +562,7 @@ void IDWT::print_2D_vector(vector<double> &a, int height, int width){
 void IDWT::print_2D_vector(vector<int> &a, int height, int width){
     for(int i=0; i<height; i++){
         for(int j=0; j<width; j++){
-            cout << a[i*width + height] << "\t";
+            cout << a[i*width + j] << "\t";
         }
         cout << endl;
     }
