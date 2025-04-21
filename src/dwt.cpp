@@ -306,8 +306,8 @@ IDWT::IDWT(vector<double> &t, point o, int lvl, int height, int width){
     level = lvl;
     origin = o;
     transformed = t;
-    cout << "Transformed in the constructuor\n";
-    print_2D_vector(t, height, width);
+    // cout << "Transformed in the constructuor\n";
+    // print_2D_vector(t, height, width);
     rows = height;
     cols = width;
     extent.x = cols + origin.x;
@@ -321,16 +321,16 @@ vector<double> IDWT::get_image(){
 
 vector<double> IDWT::multilevel_idwt(vector<double> &t, int lvl){
     
-    cout << "Rows: " << rows << ", Cols: " << cols << endl;
-    cout << "T: \n";
-    print_2D_vector(t, rows, cols);
+    // cout << "Rows: " << rows << ", Cols: " << cols << endl;
+    // cout << "T: \n";
+    // print_2D_vector(t, rows, cols);
 
     for(int i=lvl; i > 0; i--){
         point subband_boundary;
         subband_boundary.x = min(cols, (cols + 1) / (1 << (i-1)));
         subband_boundary.y = min(rows, (rows + 1) / (1 << (i-1)));
 
-        cout << "\nSubband Boundary: (" << subband_boundary.x << ", " << subband_boundary.y << ")\n";
+        // cout << "\nSubband Boundary: (" << subband_boundary.x << ", " << subband_boundary.y << ")\n";
 
         vector<double> subband(subband_boundary.y * subband_boundary.x, 0);
         for(int i=0; i<subband_boundary.y; i++){
@@ -338,8 +338,8 @@ vector<double> IDWT::multilevel_idwt(vector<double> &t, int lvl){
                 subband[i*subband_boundary.x + j] = t[i*cols + j];
             }
         }
-        cout << "Subband " << lvl << ":\n";
-        print_2D_vector(subband, subband_boundary.y, subband_boundary.x);
+        // cout << "Subband " << lvl << ":\n";
+        // print_2D_vector(subband, subband_boundary.y, subband_boundary.x);
 
         subband = sr2d(subband, subband_boundary.y, subband_boundary.x);
         for(int i=0; i<subband_boundary.y; i++){
