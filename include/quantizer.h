@@ -57,6 +57,7 @@ public:
     vector<double> get_coeffs(){ return coeffs;}
     vector<double> process_quant_coeffs(vector<pair<uint16_t, int8_t>> &q, vector<subband_info> b, int lvls);
     void print_2D_vector(vector<double> &a);
+    void print_2D_vector(vector<int> &a);
     void print_quantized();
     void print_subband_info(subband_info b);
     void print_band_info();

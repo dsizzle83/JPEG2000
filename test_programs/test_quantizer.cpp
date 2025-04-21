@@ -52,11 +52,28 @@ int main(){
     DeQuantizer dq(q_coeffs, q_band_info, 2, height, width);
     cout << "De-Quantized Coefficients" << endl;
     vector<double> dq_coeffs = dq.get_coeffs();
-    dq.print_2D_vector(dq_coeffs);
+    vector<int> rounded_coeffs;
+    for(double val : dq_coeffs){
+        rounded_coeffs.push_back((int)round(val));
+    }
+    dq.print_2D_vector(rounded_coeffs);
     IDWT my_idwt(dq_coeffs, o, 2, height, width);
     cout << "Reconstructed Image" << endl;
     vector<double> reconstructed = my_idwt.get_image();
     my_idwt.print_2D_vector(reconstructed, height, width);
+
+    int error = 0;
+    int element_count = 0;
+
+    for(int i=0; i<reconstructed.size(); i++){
+        int diff = example_block[i] - reconstructed[i];
+        error += diff * diff;
+        element_count++;
+    }
+
+    double MSE = static_cast<double>(error) / (static_cast<double>(element_count));
+
+    cout << "Total MSE: " << MSE << endl;
 
     return 0;
 }

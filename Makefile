@@ -14,10 +14,10 @@ SRC = $(SRC_DIR)/dwt.cpp \
       $(SRC_DIR)/code_block.cpp \
       $(SRC_DIR)/mq_coder.cpp \
       $(SRC_DIR)/bp_coder.cpp \
-      $(TEST_DIR)/test_quantizer.cpp # Change this file to test other program
+      $(TEST_DIR)/test_tiles.cpp # Change this file to test other program
 
 # Output binary
-TARGET = $(TEST_DIR)/test_quantizer # Change this to write to other target executable
+TARGET = $(TEST_DIR)/test_tiles # Change this to write to other target executable
 
 # Default target
 all: $(TARGET)

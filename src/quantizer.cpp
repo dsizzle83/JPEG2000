@@ -114,15 +114,12 @@ subband_info Quantizer::make_bands_from_middle(point bot_r, point middle, int ty
 }
 
 subband_info Quantizer::quantize_bands(subband_info b, vector<double> &a, double base_step_size, int height, int width){
-    int rows, cols;
-    rows = b.bot_r.y - b.top_l.y;
-    cols = b.bot_r.x - b.top_l.x;
-    vector<double> a_b(rows * cols, 0);
+    vector<double> a_b((height * width), 0);
     vector<pair<uint16_t, int8_t>> q;
 
-    for(int i=0; i<rows; i++){
-        for(int j=0; j<cols; j++){
-            a_b[i*cols + j] = a[(i + b.top_l.y) * width + (j + b.top_l.x)];
+    for(int i=0; i<height; i++){
+        for(int j=0; j<width; j++){
+            a_b[i*width + j] = a[(i + b.top_l.y) * cols + (j + b.top_l.x)];
         }
     }
 
@@ -141,7 +138,7 @@ subband_info Quantizer::quantize_bands(subband_info b, vector<double> &a, double
         int u = 0;
         for(int i=b.bit_depth; i>0; i--){
             double thresh = b.step_size * pow(2, i-1);
-            if(mag >= thresh){
+            if(mag > thresh){
                 mag -= thresh;
                 u |= (0x1 << (i - 1));
             }
@@ -165,7 +162,7 @@ void Quantizer::process_subbands(vector<double> &a, int lvls){
     point bot_r, middle;
     // non-inclusive boundary for bottom
     bot_r.x = cols;
-    bot_r.y = cols;
+    bot_r.y = rows;
     for(int i=0; i<lvls; i++){
         middle.x = (bot_r.x + 1) / 2;
         middle.y = (bot_r.y + 1) / 2;
@@ -249,7 +246,7 @@ vector<double> DeQuantizer::process_quant_coeffs(vector<pair<uint16_t, int8_t>> 
             for(int j=top_l.x; j<bot_r.x; j++){
                 double y;
                 double sign = static_cast<double>(q[i*cols + j].second);
-                y = sign * static_cast<double>(q[i*cols + j].first) + 0.5;
+                y = sign * static_cast<double>(q[i*cols + j].first);
                 y *= subband.step_size;
                 dwt_coeffs[i*cols + j] = y;
             }
@@ -267,6 +264,16 @@ void DeQuantizer::print_2D_vector(vector<double> &a){
         cout << endl;
     }
 }
+
+void DeQuantizer::print_2D_vector(vector<int> &a){
+    for(int i=0; i<rows; i++){
+        for(int j=0; j<cols; j++){
+            cout << a[i*cols + j] << "\t";
+        }
+        cout << endl;
+    }
+}
+
 
 void DeQuantizer::print_quantized(){
     cout << "Magnitudes:" << endl;

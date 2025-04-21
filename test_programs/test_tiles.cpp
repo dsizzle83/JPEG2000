@@ -90,7 +90,7 @@ void saveVectorAsJpeg(const vector<int>& imgVector, const std::string& filename,
 
 int main(){
     // Read in the image and get the rows and columns
-    string filename = "animal-9347331.jpg";
+    string filename = "./test_programs/animal-9347331.jpg";
     cv::Mat img = cv::imread(filename, cv::IMREAD_GRAYSCALE);
     int image_rows = img.rows;
     int image_cols = img.cols;
@@ -100,16 +100,16 @@ int main(){
     Tiles my_tile(scaled_image, image_rows, image_cols);
     vector<tile> my_tiles = my_tile.get_tiles();
 
-    // for(tile &t : my_tiles){
-    //     FDWT f(t.tile_data, t.anchor, 3);
-    //     vector<vector<double>> transformed_coeffs = f.get_transformed();
-    //     Quantizer q(transformed_coeffs, 3);
-    //     vector<vector<pair<uint16_t, bool>>> q_coeffs = q.get_quant_coeffs();
-    //     DeQuantizer dq(q_coeffs, q.get_band_info(), 3);
-    //     vector<vector<double>> coeffs = dq.get_coeffs();
-    //     IDWT i(coeffs, t.anchor, 3);
-    //     t.tile_data = i.get_image();
-    // }
+    for(tile &t : my_tiles){
+        FDWT f(t.tile_data, t.anchor, 3, t.height, t.width);
+        vector<double> transformed_coeffs = f.get_transformed();
+        Quantizer q(transformed_coeffs, 3, t.height, t.width);
+        vector<pair<uint16_t, int8_t>> q_coeffs = q.get_quant_coeffs();
+        DeQuantizer dq(q_coeffs, q.get_band_info(), 3, t.height, t.width);
+        vector<double> coeffs = dq.get_coeffs();
+        IDWT i(coeffs, t.anchor, 3, t.height, t.width);
+        t.tile_data = i.get_image();
+    }
 
     // // This code is used to view each image as a tile
     // int tile_num = 0;
@@ -126,7 +126,7 @@ int main(){
     vector<double> recon_scaled = reconstructed.get_image();
     vector<int> recon = de_scale_image(recon_scaled, 8, image_rows, image_cols);
 
-    saveVectorAsJpeg(recon, "output_ram.jpg", image_rows, image_cols);
+    saveVectorAsJpeg(recon, "./test_programs/output_ram.jpg", image_rows, image_cols);
     
 
     return 0;

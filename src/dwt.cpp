@@ -100,13 +100,13 @@ vector<double> FDWT::ver_sd(vector<double> &a, int height, int width){
 }
 
 vector<double> FDWT::hor_to_vert(vector<double> &a, int u, int height, int width){
-    vector<double> out_vec;
+    vector<double> out_vec(height, 0);
     if(u >= (width)){
         cout << "Column: " << u << " out of bounds for vector length: " << a.size() << endl;
         return {{}};
     }
     for(int i=0; i<height; i++){
-        out_vec.push_back(a[i*width + u]);
+        out_vec[i] = a[i*width + u];
     }
     return out_vec;
 }
@@ -371,7 +371,7 @@ vector<double> IDWT::int_to_double(vector<int> &int_vec){
 vector<int> IDWT::double_to_int(vector<double> &double_vec){
     vector<int> int_vec;
     
-    for(double &value : double_vec){
+    for(double value : double_vec){
         int rounded = round(value);
         int_vec.push_back(rounded);
     }
