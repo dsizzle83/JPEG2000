@@ -44,7 +44,7 @@ typedef struct tile{
 }tile;
 
 typedef struct bit_plane{
-    vector<vector<uint8_t>> plane_data;
+    vector<uint8_t> plane_data;
     int bit_level;
 }bitplane;
 
@@ -52,8 +52,10 @@ typedef struct code_block{
     point anchor;
     subband_info s_b;
     vector<bit_plane> bit_planes;
-    vector<vector<int8_t>> sign_data;
+    vector<int8_t> sign_data;
     int num_bits;
+    int height;
+    int width;
 }code_block;
 
 typedef struct cb_sample{
