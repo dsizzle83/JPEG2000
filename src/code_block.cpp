@@ -192,8 +192,8 @@ void CodeBlocks::map_block_to_canvas(code_block &c, vector<pair<uint16_t, int8_t
     }
     // cout << "q_c: " << q_c.size() << "rows x " << q_c[0].size() << "cols\n";
     // cout << "q:  " << q.size() << "rows x " << q[0].size() << "cols\n";
-    for(size_t i=0; i<c.height; i++){
-        for(size_t j=0; j<c.width; j++){
+    for(int i=0; i<c.height; i++){
+        for(int j=0; j<c.width; j++){
             point tile_reference = {i + anchor.y, j + anchor.x};
             // if(tile_reference.x >= cols || tile_reference.y >= rows){
             //     cout << "Error.  Tried to write past canvas at point: (";

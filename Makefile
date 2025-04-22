@@ -13,10 +13,11 @@ SRC = $(SRC_DIR)/dwt.cpp \
       $(SRC_DIR)/tiling.cpp \
       $(SRC_DIR)/code_block.cpp \
       $(SRC_DIR)/mq_coder.cpp \
-      $(TEST_DIR)/test_code_blocks.cpp # Change this file to test other program
+      $(SRC_DIR)/bp_coder.cpp \
+      $(TEST_DIR)/test_bp_coder.cpp # Change this file to test other program
 
 # Output binary
-TARGET = $(TEST_DIR)/test_code_blocks # Change this to write to other target executable
+TARGET = $(TEST_DIR)/test_bp_coder # Change this to write to other target executable
 
 # Default target
 all: $(TARGET)
