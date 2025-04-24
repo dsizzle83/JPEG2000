@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cassert>
 
 #include "../include/my_struct.h"
 #include "../include/code_block.h"
@@ -53,12 +54,13 @@ vector<code_block> CodeBlocks::band_to_blocks(vector<pair<uint16_t, int8_t>> &a_
         relative_anchor.x = 0;
         int height = max_height;
         // If there are less than 64 rows available (typical code block height), just use the rest
-        if(relative_anchor.y + static_cast<int>(max_height) > relative_bot_r.y) height = relative_bot_r.y - relative_anchor.y;
+        if(relative_anchor.y + max_height > relative_bot_r.y) height = relative_bot_r.y - relative_anchor.y;
         while(relative_anchor.x < relative_bot_r.x){
             code_block temp_block;
             int width = max_width;
             // If there are less than 64 columns available (typical code block width), just use the rest
-            if(relative_anchor.x + static_cast<int>(max_width) > relative_bot_r.x) width = relative_bot_r.x - relative_anchor.x;
+            if(relative_anchor.x + max_width > relative_bot_r.x) width = relative_bot_r.x - relative_anchor.x;
+            assert(height <= max_height && width <= max_width && height > 0 && width > 0);
             temp_block.anchor = relative_anchor; // Represents the top_left of the codeblock w.r.t. subband
             temp_block.s_b = b;
             temp_block.num_bits = b.bit_depth;
@@ -194,12 +196,21 @@ void CodeBlocks::map_block_to_canvas(code_block &c, vector<pair<uint16_t, int8_t
     // cout << "q:  " << q.size() << "rows x " << q[0].size() << "cols\n";
     for(int i=0; i<c.height; i++){
         for(int j=0; j<c.width; j++){
-            point tile_reference = {i + anchor.y, j + anchor.x};
-            // if(tile_reference.x >= cols || tile_reference.y >= rows){
-            //     cout << "Error.  Tried to write past canvas at point: (";
-            //     cout << tile_reference.x << ", " << tile_reference.y << ")\n";
-            // }
-            q[(i + anchor.y) * cols + j + anchor.x] = q_c[i * c.width + j];
+            point tile_reference;
+            tile_reference.x = j+anchor.x;
+            tile_reference.y = i + anchor.y;
+            if(tile_reference.y >= rows || tile_reference.x >= cols) {
+                cout << "Code Block Height: " << c.height << ", Width: " << c.width << endl;
+                cout << "Error at: (" << tile_reference.x << ", " << tile_reference.y << ")" << endl;
+                cout << "Canvas size: " << cols << "x" << rows << endl;
+                cout << "Block anchor: (" << anchor.x << ", " << anchor.y << ")" << endl;
+                cout << "Subband: type=" << c.s_b.type << " level=" << c.s_b.level << endl;
+                cout << "Subband top_left: (" << c.s_b.top_l.x << ", " << c.s_b.top_l.y << ")" << endl;
+                cout << "Subband bot_right: (" << c.s_b.bot_r.x << ", " << c.s_b.bot_r.y << ")" << endl;
+                cout << "-------------------------------------------------------------------------------\n";
+            }
+            //assert(tile_reference.y < rows && tile_reference.x < cols);
+            else q[tile_reference.y * cols + tile_reference.x] = q_c[i * c.width + j];
         }
     }
 }

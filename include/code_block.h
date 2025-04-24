@@ -11,8 +11,8 @@ private:
     vector<pair<uint16_t, int8_t>> quant_coeffs;
     vector<subband_info> band_info;
     vector<code_block> blocks;
-    size_t max_height = 64;
-    size_t max_width = 64;
+    int max_height = 64;
+    int max_width = 64;
     int rows;
     int cols;
 public:

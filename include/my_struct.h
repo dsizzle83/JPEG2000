@@ -36,13 +36,6 @@ typedef struct subband_info{
     int bit_depth;
 }subband_info;
 
-typedef struct tile{
-    vector<double> tile_data;
-    point anchor;
-    size_t height;
-    size_t width;
-}tile;
-
 typedef struct bit_plane{
     vector<uint8_t> plane_data;
     int bit_level;
@@ -73,5 +66,13 @@ typedef struct coded_block{
     subband_info sb_info;
     deque<int> lengths;
 }coded_block;
+
+typedef struct tile{
+    vector<double> tile_data;
+    point anchor;
+    size_t height;
+    size_t width;
+    deque<coded_block> enc_data;
+}tile;
 
 #endif

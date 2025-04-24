@@ -518,6 +518,8 @@ void BitPlaneDecoder::init_code_block(){
         bp.bit_level = i;
         B_i.bit_planes.push_back(bp);
     }
+    B_i.height = rows;
+    B_i.width = cols;
 }
 
 void BitPlaneDecoder::init_state_tables(){

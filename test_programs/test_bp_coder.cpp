@@ -92,16 +92,18 @@ void saveVectorAsJpeg(const vector<int>& imgVector, const std::string& filename,
 
 int main(){
     // Read in the image and get the rows and columns
-    string filename = "./test_programs/animal-9347331.jpg";
+    string filename = "./test_programs/Room.png";
     cv::Mat img = cv::imread(filename, cv::IMREAD_GRAYSCALE);
     int image_rows = img.rows;
     int image_cols = img.cols;
     vector<int> imgVector = readJpegToVector(img);
 
-    saveVectorAsJpeg(imgVector, "input_ram.jpg", image_rows, image_cols);
+    saveVectorAsJpeg(imgVector, "input_room.png", image_rows, image_cols);
     vector<double> scaled_image = scale_image(imgVector, 8, image_rows, image_cols);
     Tiles my_tile(scaled_image, image_rows, image_cols);
     vector<tile> my_tiles = my_tile.get_tiles();
+
+    vector<tile> recon_tiles;
 
     long unsigned int compressed_size = 0;
     for(tile &t : my_tiles){
@@ -167,7 +169,7 @@ int main(){
             // cout << "15\n";
         }
         // cout << "16";
-        CodeBlocks inverse_cb(code_blocks, t.height, t.width);
+        CodeBlocks inverse_cb(decoded_blocks, t.height, t.width);
         // cout << "18";
         vector<pair<uint16_t, int8_t>> recon_quant_coeffs = inverse_cb.get_quant_coeffs();
         // cout << "19";
@@ -181,17 +183,22 @@ int main(){
         // cout << "23";
         vector<double> t_dat = i.get_image();
         // cout << "24";
-        t.tile_data = t_dat;
+        tile temp_tile;
+        temp_tile.anchor = t.anchor;
+        temp_tile.height = t.height;
+        temp_tile.width = t.width;
+        temp_tile.tile_data = t_dat;
+        recon_tiles.push_back(temp_tile);
         // cout << "25\n";
     }
     
     cout << "Original Size: " << image_cols * image_rows * 8 << ", Compressed Size: " << (int)compressed_size;
 
-    Tiles reconstructed(my_tiles);
+    Tiles reconstructed(recon_tiles);
     vector<double> recon_scaled = reconstructed.get_image();
     vector<int> recon = de_scale_image(recon_scaled, 8, image_rows, image_cols);
 
-    saveVectorAsJpeg(recon, "output_ram.jpg", image_rows, image_cols);    
+    saveVectorAsJpeg(recon, "output_room.png", image_rows, image_cols);    
 
     return 0;
 }
