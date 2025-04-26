@@ -10,6 +10,8 @@
 #include "../include/tiling.h"
 #include "../include/code_block.h"
 #include "../include/bp_coder.h"
+#include "../include/mq_coder.h"
+#include "../include/img_proc.h"
 
 using namespace std;
 
@@ -68,8 +70,8 @@ vector<int> de_scale_image(vector<double> &scaled_image, int bits, int rows, int
             val *= dynamic_range;
             if(val < 0) val = 0;
             else if(val > pow(2, bits) - 1) val = pow(2, bits) - 1;
-            int int_val = round(val);
-            de_scaled_image[i*cols + j] = val;
+            int int_val = static_cast<int>(round(val));
+            de_scaled_image[i*cols + j] = int_val;
         }
     }
     return de_scaled_image;
@@ -92,13 +94,13 @@ void saveVectorAsJpeg(const vector<int>& imgVector, const std::string& filename,
 
 int main(){
     // Read in the image and get the rows and columns
-    string filename = "./test_programs/Room.png";
+    string filename = "./test_images/colorscales.png";
     cv::Mat img = cv::imread(filename, cv::IMREAD_GRAYSCALE);
     int image_rows = img.rows;
     int image_cols = img.cols;
     vector<int> imgVector = readJpegToVector(img);
 
-    saveVectorAsJpeg(imgVector, "input_room.png", image_rows, image_cols);
+    saveVectorAsJpeg(imgVector, "./test_images/input_colorscales.png", image_rows, image_cols);
     vector<double> scaled_image = scale_image(imgVector, 8, image_rows, image_cols);
     Tiles my_tile(scaled_image, image_rows, image_cols);
     vector<tile> my_tiles = my_tile.get_tiles();
@@ -109,96 +111,64 @@ int main(){
     for(tile &t : my_tiles){
         FDWT f(t.tile_data, t.anchor, 3, t.height, t.width);
         vector<double> transform_coeffs = f.get_transformed();
-        Quantizer q(transform_coeffs, 3, t.height, t.width);
         
+        Quantizer q(transform_coeffs, 3, t.height, t.width);
         vector<pair<uint16_t, int8_t>> q_coeffs = q.get_quant_coeffs();
         vector<subband_info> bands = q.get_band_info();
         
         CodeBlocks my_cb(q_coeffs, bands, t.height, t.width);
-        // cout << "Done with making code blocks\n";
-        vector<pair<uint16_t, int8_t>>().swap(q_coeffs);
-        vector<double>().swap(transform_coeffs);
-        
         vector<code_block> code_blocks = my_cb.get_code_blocks();
-        // cout << "1";
-        deque<coded_block> encoded_blocks;
-        // cout << "2\n";
+        
         BitPlaneEncoder my_bpe;
-        BitPlaneDecoder my_bpd;       
-        for(auto &cb : code_blocks){
+        BitPlaneDecoder my_bpd;  
+        vector<code_block> decoded_blocks;
+        for(code_block cb : code_blocks){
             my_bpe.load_code_block(cb);
             my_bpe.reset_bp_encoder();
-            // cout << "3";
-            // cout << "4";
             my_bpe.encode_code_block();
             my_bpe.make_coded_block();
-            // cout << "5";
+           
             coded_block cb_coded;
-            // cout << "6";
             cb_coded = my_bpe.get_coded_block();
-            // cout << "7";
-            encoded_blocks.push_back(cb_coded);
-            // cout << "8\n";    
-        }
-        // Calculate total length of tile;
-        for(auto &val : my_bpe.get_lengths()){
-            compressed_size += val;
-        }
-        ///////////////////////////
-        // This is the bottom /////
-        ///////////////////////////
-        vector<code_block> decoded_blocks;
-        // cout << "9\n";
-        for(int i=0; i<encoded_blocks.size(); i++){
-            coded_block ecb = encoded_blocks.front();
-            encoded_blocks.pop_front();
-            // cout << "ECB Stats: \n" << "bits: " << ecb.bits << endl;
-            // cout << "height: " << ecb.height << endl;
-            // cout << "width: " << ecb.width << endl;
-            // cout << "s_b info:\n" << "Type: " << ecb.sb_info.type;
-            // // cout << ", level: " << ecb.sb_info.level << ", step size: ";
-            // cout << fixed << setprecision(4) << ecb.sb_info.step_size << endl;
-            my_bpd.load_encoded_block(ecb);
+
+
+            ///////////////////////////
+            // This is the bottom /////
+            ///////////////////////////
+
+            my_bpd.load_encoded_block(cb_coded);
             my_bpd.reset_bp_decoder();
             my_bpd.recover_codeblock();
-            code_block cb;
-            // cout << "13";
-            cb = my_bpd.get_code_block();
-            // cout << "14";
+            code_block dec_cb;
+            dec_cb = my_bpd.get_code_block();
             decoded_blocks.push_back(cb);
-            // cout << "15\n";
         }
-        // cout << "16";
+
         CodeBlocks inverse_cb(decoded_blocks, t.height, t.width);
-        // cout << "18";
         vector<pair<uint16_t, int8_t>> recon_quant_coeffs = inverse_cb.get_quant_coeffs();
-        // cout << "19";
         vector<subband_info> recon_bands = inverse_cb.get_band_info();
-        // cout << "20";
+
         DeQuantizer dq(recon_quant_coeffs, recon_bands, 3, t.height, t.width);
-        // cout << "21";
-        vector<double> coeffs = dq.get_coeffs();
-        // cout << "22";
-        IDWT i(coeffs, t.anchor, 3, t.height, t.width);
-        // cout << "23";
+        vector<double> dq_coeffs = dq.get_coeffs();
+
+        IDWT i(dq_coeffs, t.anchor, 3, t.height, t.width);
         vector<double> t_dat = i.get_image();
-        // cout << "24";
+        
         tile temp_tile;
         temp_tile.anchor = t.anchor;
         temp_tile.height = t.height;
         temp_tile.width = t.width;
         temp_tile.tile_data = t_dat;
         recon_tiles.push_back(temp_tile);
-        // cout << "25\n";
     }
     
-    cout << "Original Size: " << image_cols * image_rows * 8 << ", Compressed Size: " << (int)compressed_size;
+    std::cout << "Original Size: " << image_cols * image_rows * 8 << ", Compressed Size: " << (int)compressed_size;
 
     Tiles reconstructed(recon_tiles);
     vector<double> recon_scaled = reconstructed.get_image();
     vector<int> recon = de_scale_image(recon_scaled, 8, image_rows, image_cols);
 
-    saveVectorAsJpeg(recon, "output_room.png", image_rows, image_cols);    
+    saveVectorAsJpeg(recon, "./test_images/output_colorscales.png", image_rows, image_cols);    
 
     return 0;
 }

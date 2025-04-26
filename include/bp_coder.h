@@ -48,10 +48,10 @@ public:
     uint8_t sig_context(point loc);
     pair<uint8_t, int8_t> sign_context(point loc);
     uint8_t mag_context(point loc);
-    void sig_prop_pass(vector<uint8_t> &stripes, point anchor, int height, int width);
-    void encode_sign(point loc);
-    void mag_ref_pass(vector<uint8_t> &stripes, point anchor, int height, int width);
-    void clean_up_pass(vector<uint8_t> &stripes, point anchor, int height, int width);
+    void sig_prop_pass(vector<uint8_t> &stripes, point anchor, int height, int width, int pass);
+    void encode_sign(point loc, int pass, char pass_type);
+    void mag_ref_pass(vector<uint8_t> &stripes, point anchor, int height, int width, int pass);
+    void clean_up_pass(vector<uint8_t> &stripes, point anchor, int height, int width, int pass);
     bit_plane get_bit_plane(int p);
     vector<uint8_t> get_stripes(int start_row, int p, int &height, int width);
     void encode_code_block();
@@ -62,6 +62,8 @@ public:
     void cleanup_pass_full(int p);
     void snapshot(int pass_count);
     void print_sign_state();
+    void debug_encode(bool bit, uint8_t ctx, point loc, int pass, char pass_type);
+    void debug_run_mode(int r, point loc, int pass);
 };
 
 class BitPlaneDecoder{
@@ -96,11 +98,13 @@ public:
     uint8_t mag_context(point loc);
     void sig_prop_pass(int p);
     int get_plane_index(int p);
-    void decode_sign(point loc);
+    void decode_sign(point loc, int pass, char pass_type);
     void mag_ref_pass(int p);
     void cleanup_pass(int p);
     void resync_decoder();
     void print_sign_state();
+    bool debug_decode(uint8_t ctx, point loc, int pass, char pass_type);
+    void debug_run_mode(int r, point loc, int pass);
 };
 
 #endif

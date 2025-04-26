@@ -18,6 +18,10 @@ void BitPlaneEncoder::load_code_block(code_block &c_b){
     B_i = c_b;
     rows = c_b.height;
     cols = c_b.width;
+    sort(B_i.bit_planes.begin(), B_i.bit_planes.end(), 
+        [](const bit_plane &a, const bit_plane &b) { 
+            return a.bit_level > b.bit_level; 
+        });
 }
 
 void BitPlaneEncoder::reset_bp_encoder(){
@@ -173,7 +177,7 @@ uint8_t BitPlaneEncoder::mag_context(point loc){
     return context;
 }
 
-void BitPlaneEncoder::sig_prop_pass(vector<uint8_t> &stripes, point anchor, int height, int width){
+void BitPlaneEncoder::sig_prop_pass(vector<uint8_t> &stripes, point anchor, int height, int width, int pass){
     uint8_t k_sig;
     point loc;
     for(size_t j=0; j<width; j++){
@@ -183,9 +187,10 @@ void BitPlaneEncoder::sig_prop_pass(vector<uint8_t> &stripes, point anchor, int 
             k_sig = sig_context(loc);
             if((sig_state[loc.y*cols + loc.x] == 0) && (k_sig > 0)){
                 mq_encoder.encode((stripes[i*width + j] == 1), k_sig);
+                // debug_encode(stripes[i*width + j] == 1, k_sig, loc, pass, 's');
                 if(stripes[i*width + j] == 1){
                     sig_state[loc.y*cols + loc.x] = 1;
-                    encode_sign(loc);
+                    encode_sign(loc, pass, 's');
                 }
                 member[loc.y*cols + loc.x] = 1;
             }
@@ -194,15 +199,16 @@ void BitPlaneEncoder::sig_prop_pass(vector<uint8_t> &stripes, point anchor, int 
     }
 }
 
-void BitPlaneEncoder::encode_sign(point loc){
+void BitPlaneEncoder::encode_sign(point loc, int pass, char pass_type){
     pair<uint8_t, int8_t> sign_pair = sign_context(loc);
     int8_t sign = B_i.sign_data[loc.y*cols + loc.x];
     bool symbol = ((sign * sign_pair.second) == 1)? false : true;
 
     mq_encoder.encode(symbol, sign_pair.first);
+    // debug_encode(symbol, sign_pair.first, loc, pass, pass_type);
 }
 
-void BitPlaneEncoder::mag_ref_pass(vector<uint8_t> &stripes, point anchor, int height, int width){
+void BitPlaneEncoder::mag_ref_pass(vector<uint8_t> &stripes, point anchor, int height, int width, int pass){
     uint8_t k_mag;
     point loc;
     for(size_t j=0; j<width; j++){
@@ -212,19 +218,20 @@ void BitPlaneEncoder::mag_ref_pass(vector<uint8_t> &stripes, point anchor, int h
             if(sig_state[loc.y*cols + loc.x] && !member[loc.y*cols + loc.x]){
                 k_mag = mag_context(loc);
                 mq_encoder.encode((stripes[i*width + j] == 1), k_mag);
+                // debug_encode((stripes[i*width + j] == 1), k_mag, loc, pass, 'm');
                 del_sig[loc.y*cols + loc.x] = sig_state[loc.y*cols + loc.x];
             }
         }
     }
 }
 
-void BitPlaneEncoder::clean_up_pass(vector<uint8_t> &stripes, point anchor, int height, int width){
+void BitPlaneEncoder::clean_up_pass(vector<uint8_t> &stripes, point anchor, int height, int width, int pass){
     uint8_t k_sig;
     point loc;
     int r;
-    for(size_t j = 0; j < width; j++){
+    for(int j = 0; j < width; j++){
         loc.x = anchor.x + j;
-        for(size_t i=0; i< height; i++){
+        for(int i=0; i< height; i++){
             loc.y = anchor.y + i;
             if((loc.y % 4 == 0) && (loc.y <= rows - 4)){
                 r = -1;
@@ -241,28 +248,35 @@ void BitPlaneEncoder::clean_up_pass(vector<uint8_t> &stripes, point anchor, int 
                 if(all_zeros){
                     r = 0;
                     while((r < 4) && (stripes[(i + r)*width + j] == 0)) r++;
+                    
                     if(r == 4){
+                        // debug_encode(false, 9, loc, pass, 'c');
                         mq_encoder.encode(false, 9);
                     }
                     else{
                         // run interruption
+                        // debug_encode(true, 9, loc, pass, 'c');
                         mq_encoder.encode(true, 9);
                         bool symbol = (r/2 > 0);
+                        // debug_encode(symbol, 18, loc, pass, 'c');
                         mq_encoder.encode(symbol, 18);
                         symbol = (r % 2 == 1);
+                        // debug_encode(symbol, 18, loc, pass, 'c');
                         mq_encoder.encode(symbol, 18);
                     }
+                    //debug_run_mode(r, loc, pass);
                 }
             }
             if((sig_state[loc.y*cols + loc.x] == 0) && (member[loc.y*cols + loc.x] == 0)){
                 if(r >= 0) r--;
                 else{
                     k_sig = sig_context(loc);
+                    // debug_encode(stripes[i*width + j] == 1, k_sig, loc, pass, 'c');
                     mq_encoder.encode((stripes[i*width + j] == 1), k_sig);
                 }
                 if(stripes[i*width + j] == 1){
                     sig_state[loc.y*cols + loc.x] = 1;
-                    encode_sign(loc);
+                    encode_sign(loc, pass, 'c');
                 }
             }
         }
@@ -314,9 +328,12 @@ void BitPlaneEncoder::encode_code_block(){
     for(int p=B_i.num_bits - 1; p>=0; p--){
         if(p < B_i.num_bits - 1){
             sig_prop_pass_full(p);
+            // snapshot(++pass_count);
             mag_ref_pass_full(p);
+            // snapshot(++pass_count);
         }
         cleanup_pass_full(p);
+        // snapshot(++pass_count);
     }
 }
 
@@ -345,7 +362,7 @@ void BitPlaneEncoder::sig_prop_pass_full(int p){
         int height;
         vector<uint8_t> stripes = get_stripes(start_row, p, height, cols);
         anchor.y = start_row;
-        sig_prop_pass(stripes, anchor, height, cols);
+        sig_prop_pass(stripes, anchor, height, cols, p);
         start_row += 4;
     }
     term_and_append_length();
@@ -358,7 +375,7 @@ void BitPlaneEncoder::mag_ref_pass_full(int p){
         int height;
         vector<uint8_t> stripes = get_stripes(start_row, p, height, cols);
         anchor.y = start_row;
-        mag_ref_pass(stripes, anchor, height, cols);
+        mag_ref_pass(stripes, anchor, height, cols, p);
         start_row += 4;
     }
     term_and_append_length();
@@ -371,7 +388,7 @@ void BitPlaneEncoder::cleanup_pass_full(int p){
         int height;
         vector<uint8_t> stripes = get_stripes(start_row, p, height, cols);
         anchor.y = start_row;
-        clean_up_pass(stripes, anchor, height, cols);
+        clean_up_pass(stripes, anchor, height, cols, p);
         start_row += 4;
     }
     term_and_append_length();
@@ -426,6 +443,25 @@ void BitPlaneEncoder::print_sign_state(){
         }
         out << "\n";
     }
+}
+
+void BitPlaneEncoder::debug_encode(bool bit, uint8_t ctx, point loc, int pass, char pass_type){
+    FILE * pFile;
+    pFile = fopen("encode_log_file.txt", "a");
+    std::fprintf(pFile,
+        "ENC %c p=%d loc=(%d,%d) ctx=%2d bit=%d\n",
+        pass_type, pass, loc.x, loc.y, ctx, bit);
+    fclose(pFile);
+    mq_encoder.encode(bit, ctx);
+}
+
+void BitPlaneEncoder::debug_run_mode(int r, point loc, int pass){
+    FILE * pFile;
+    pFile = fopen("encode_log_file.txt", "a");
+    std::fprintf(pFile,
+        "ENC p=%d loc=(%d,%d) r= %d\n",
+        pass, loc.x, loc.y, r);
+    fclose(pFile);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -518,6 +554,10 @@ void BitPlaneDecoder::init_code_block(){
         bp.bit_level = i;
         B_i.bit_planes.push_back(bp);
     }
+    sort(B_i.bit_planes.begin(), B_i.bit_planes.end(), 
+        [](const bit_plane &a, const bit_plane &b) { 
+            return a.bit_level > b.bit_level; 
+        });
     B_i.height = rows;
     B_i.width = cols;
 }
@@ -574,25 +614,21 @@ void BitPlaneDecoder::recover_codeblock(){
         if(p < num_bits - 1){
             if(z <= Z_hat){
                 sig_prop_pass(p);
-                // cout << "\tspp\n";
+                // snapshot(++pass_count);
                 resync_decoder();
-                // cout << "\trsd\n";
             }
             if((z + 1) <= Z_hat){
                 mag_ref_pass(p);
-                // cout << "\tmrp\n";
+                // snapshot(++pass_count);
                 resync_decoder();
-                // cout << "\trsd\n";
             }
         }
         if(z + 2 <= Z_hat){
             cleanup_pass(p);
-            // cout << "\tcup\n";
+            // snapshot(++pass_count);
             resync_decoder();
-            // cout << "\trsd\n";
         }
     }
-    // cout << "Finished Recover Codeblock\n";
 }
 
 uint8_t BitPlaneDecoder::sig_context(point loc){
@@ -749,10 +785,11 @@ void BitPlaneDecoder::sig_prop_pass(int p){
                 k_sig = sig_context(loc);
                 if((sig_state[loc.y*cols + loc.x] == 0) && (k_sig > 0)){
                     bool symbol = mq_decoder.decode(k_sig);
+                    //bool symbol = debug_decode(k_sig, loc, p, 's');
                     B_i.bit_planes[bp_index].plane_data[loc.y*cols + loc.x] = symbol? 1: 0;
                     if(symbol){
                         sig_state[loc.y*cols + loc.x] = 1;
-                        decode_sign(loc);
+                        decode_sign(loc, p, 's');
                     }
                     member[loc.y*cols + loc.x] = 1;
                 }
@@ -778,9 +815,10 @@ int BitPlaneDecoder::get_plane_index(int p){
     }
 }
 
-void BitPlaneDecoder::decode_sign(point loc){
+void BitPlaneDecoder::decode_sign(point loc, int pass, char pass_type){
     pair<uint8_t, int8_t> sign_pair = sign_context(loc);
     bool symbol = mq_decoder.decode(sign_pair.first);
+    //bool symbol = debug_decode(sign_pair.first, loc, pass, pass_type);
     int8_t sign;
     if(!symbol){
         sign = sign_pair.second;
@@ -806,6 +844,7 @@ void BitPlaneDecoder::mag_ref_pass(int p){
                 if((sig_state[loc.y*cols + loc.x] == 1) && (member[loc.y*cols + loc.x] == 0)){
                     k_mag = mag_context(loc);
                     bool symbol = mq_decoder.decode(k_mag);
+                    // bool symbol = debug_decode(k_mag, loc, p, 'm');
                     B_i.bit_planes[bp_index].plane_data[loc.y*cols + loc.x] = (symbol ? 1 : 0);
                     del_sig[loc.y*cols + loc.x] = sig_state[loc.y*cols + loc.x];
                 }
@@ -842,29 +881,34 @@ void BitPlaneDecoder::cleanup_pass(int p){
                     }
                     if(all_zeros){
                         symbol = mq_decoder.decode(9);
+                        // symbol = debug_decode(9, loc, p, 'c');
                         if(!symbol){
                             r = 4;
                         }
                         else{
                             // Run Interruption
                             symbol = mq_decoder.decode(18);
+                            // symbol = debug_decode(18, loc, p, 'c');                            
                             r = symbol? 2 : 0;
+                            // symbol = debug_decode(18, loc, p, 'c'); 
                             symbol = mq_decoder.decode(18);
                             r += symbol? 1 : 0;
                             B_i.bit_planes[bp_index].plane_data[(loc.y + r)*cols + loc.x] = 1;
                         }
+                        //debug_run_mode(r, loc, p);
                     }
                 }
                 if((sig_state[loc.y*cols + loc.x] == 0) && (member[loc.y*cols + loc.x] == 0)){
                     if(r >= 0) r--;
                     else{
                         k_sig = sig_context(loc);
+                        // symbol = debug_decode(k_sig, loc, p, 'c'); 
                         symbol = mq_decoder.decode(k_sig);
                         B_i.bit_planes[bp_index].plane_data[loc.y*cols + loc.x] = (symbol? 1 : 0);
                     }
                     if(B_i.bit_planes[bp_index].plane_data[loc.y*cols + loc.x] == 1){
                         sig_state[loc.y*cols + loc.x] = 1;
-                        decode_sign(loc);
+                        decode_sign(loc, p, 'c');
                     }
                 }
             }
@@ -897,4 +941,23 @@ void BitPlaneDecoder::print_sign_state(){
         }
         out << "\n";
     }
+}
+
+bool BitPlaneDecoder::debug_decode(uint8_t ctx, point loc, int pass, char pass_type){
+    FILE * pFile;
+    pFile = fopen("decode_log_file.txt", "a");
+    bool symbol = mq_decoder.decode(ctx);
+    std::fprintf(pFile,
+        "ENC %c p=%d loc=(%d,%d) ctx=%2d bit=%d\n",
+        pass_type, pass, loc.x, loc.y, ctx, symbol);
+    fclose(pFile);
+    return symbol;
+}
+void BitPlaneDecoder::debug_run_mode(int r, point loc, int pass){
+    FILE * pFile;
+    pFile = fopen("decode_log_file.txt", "a");
+    std::fprintf(pFile,
+        "ENC p=%d loc=(%d,%d) r= %d\n",
+        pass, loc.x, loc.y, r);
+    fclose(pFile);
 }
