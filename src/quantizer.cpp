@@ -127,11 +127,13 @@ subband_info Quantizer::quantize_bands(subband_info b, vector<double> &a, double
     b.expo = calc_exponent(b.step_size);
     b.mant = calc_mantissa(b.step_size, b.expo);
     b.bit_depth = calc_bit_depth(b.step_size, a_b);
+    b.energy = 0.0;
     if(b.bit_depth > 15){
         cout << "Bit depth is too High! You used: " << b.bit_depth << endl;
     }
 
     for(double val : a_b){
+        b.energy += val*val;
         pair<uint16_t, int8_t> temp_pair;
         int8_t x = (val >= 0)? 1 : -1;
         double mag = abs(val);

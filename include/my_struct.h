@@ -30,6 +30,7 @@ typedef struct subband_info{
     point top_l;
     point bot_r;
     double step_size;
+    double energy;
     int mant;
     int expo;
     int level;
@@ -65,6 +66,7 @@ typedef struct coded_block{
     point anchor;
     subband_info sb_info;
     deque<int> lengths;
+    deque<pair<int, double>> rate_dis;
 }coded_block;
 
 typedef struct tile{

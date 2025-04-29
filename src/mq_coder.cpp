@@ -6,8 +6,16 @@ MQEncoder::MQEncoder(){
     reset_encoder();
     context_table = init_context_table();
 }
-    
 
+double MQEncoder::get_prob(uint8_t ctx, bool symbol){
+    bool mps = context_table[ctx].s_k;
+    uint16_t lps_prob = mq_lut[context_table[ctx].lut_entry].p;
+    double prob = static_cast<double>(lps_prob) / (pow(2.0, 16.0) * 0.708);
+    if(mps == symbol){
+        prob = 1 - prob;
+    }
+    return prob;
+}
 
 void MQEncoder::reset_encoder(){
     A = 0x8000;
