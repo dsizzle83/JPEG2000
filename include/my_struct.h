@@ -30,7 +30,6 @@ typedef struct subband_info{
     point top_l;
     point bot_r;
     double step_size;
-    double energy;
     int mant;
     int expo;
     int level;
