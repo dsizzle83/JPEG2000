@@ -85,7 +85,7 @@ double BitPlaneEncoderRD::calc_total_distortion(){
             dist += diff * diff;
         }
     }
-    dist = dist * B_i.s_b.energy;
+    dist = dist * pow(2.0, (double)B_i.s_b.level);
     return dist;
 }
 
