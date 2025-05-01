@@ -63,7 +63,7 @@ public:
     vector<uint8_t> get_stripes(int start_row, int p, int &height, int width);
     void encode_code_block();
     void make_coded_block();
-    void term_and_append_length(double dist);
+    void term_and_append_length();
     void sig_prop_pass_full(int p);
     void mag_ref_pass_full(int p);
     void cleanup_pass_full(int p);
@@ -73,6 +73,9 @@ public:
     void debug_run_mode(int r, point loc, int pass);
     double get_sig_dist(uint8_t ctx, bool symbol, double thresh);
     double get_mag_dist(double thresh);
+    void print_coded_block_stats();
+    void print_wavelets();
+    void print_implied();
 };
 
 class BitPlaneDecoderRD{

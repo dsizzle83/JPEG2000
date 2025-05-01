@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -O3 `pkg-config --cflags opencv4`
+CXXFLAGS = -O0 -g `pkg-config --cflags opencv4`
 LDFLAGS = `pkg-config --libs opencv4`
 
 # Directories
@@ -13,12 +13,12 @@ SRC = $(SRC_DIR)/dwt.cpp \
       $(SRC_DIR)/tiling.cpp \
       $(SRC_DIR)/code_block.cpp \
       $(SRC_DIR)/mq_coder.cpp \
-      $(SRC_DIR)/bp_coder.cpp \
+      $(SRC_DIR)/bp_coder_rd.cpp \
       $(SRC_DIR)/img_proc.cpp \
-      $(TEST_DIR)/test_img_proc.cpp # Change this file to test other program
+      $(TEST_DIR)/test_bp_rd_coder_only.cpp # Change this file to test other program
 
 # Output binary
-TARGET = $(TEST_DIR)/test_img_proc # Change this to write to other target executable
+TARGET = $(TEST_DIR)/test_bp_rd_coder_only # Change this to write to other target executable
 
 # Default target
 all: $(TARGET)

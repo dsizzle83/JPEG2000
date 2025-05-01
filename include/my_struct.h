@@ -68,6 +68,13 @@ typedef struct coded_block{
     deque<pair<int, double>> rate_dis;
 }coded_block;
 
+typedef struct quality_layer{
+    vector<coded_block> coded_blocks;
+    long unsigned int max_length;
+    int layer_number;
+    double min_slope;
+}quality_layer;
+
 typedef struct tile{
     vector<double> tile_data;
     point anchor;

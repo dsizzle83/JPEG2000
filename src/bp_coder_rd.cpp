@@ -62,7 +62,7 @@ void BitPlaneEncoderRD::init_implied_coeffs(){
     vector<double> iwc(rows*cols, 0);
     for(int i=0; i<rows; i++){
         for(int j=0; j<cols; j++){
-            iwc[i*cols + j] = 0.0;
+            iwc[i*cols + j] = 0.5 * static_cast<double>(B_i.sign_data[i*cols + j]) * B_i.s_b.step_size;
         }
     }
     implied_coeffs = iwc;
@@ -70,10 +70,8 @@ void BitPlaneEncoderRD::init_implied_coeffs(){
 }
 
 void BitPlaneEncoderRD::update_implied_coeffs(point loc, int p, bool symbol){
-    double increment = pow(2.0, static_cast<double>(p) - 1.0);
-    bool sign_pos = (B_i.sign_data[loc.y * cols + loc.x] == 1);
-    increment *= (sign_pos ^ symbol)? -1 : 1;
-    implied_coeffs[loc.y*cols + loc.x] += increment;
+    double increment = pow(2.0, static_cast<double>(p)) * B_i.s_b.step_size * static_cast<double>(B_i.sign_data[loc.y*cols + loc.x]);
+    implied_coeffs[loc.y*cols + loc.x] += symbol? increment: 0;
 }  
 
 double BitPlaneEncoderRD::calc_total_distortion(){
@@ -527,15 +525,43 @@ void BitPlaneEncoderRD::debug_run_mode(int r, point loc, int pass){
     fclose(pFile);
 }
 
-double BitPlaneEncoderRD::get_sig_dist(uint8_t ctx, bool symbol, double thresh){
-    double prob = mq_encoder.get_prob(ctx, symbol);
-    double dist = prob * 2.25 * thresh * thresh;
-    return dist;
-}
+// double BitPlaneEncoderRD::get_sig_dist(uint8_t ctx, bool symbol, double thresh){
+//     double prob = mq_encoder.get_prob(ctx, symbol);
+//     double dist = prob * 2.25 * thresh * thresh;
+//     return dist;
+// }
 
 double BitPlaneEncoderRD::get_mag_dist(double thresh){
     double dist = 0.25 * thresh * thresh;
     return dist; 
+}
+
+void BitPlaneEncoderRD::print_coded_block_stats(){
+    cout << "Subband Anchor: (" << out_block.sb_info.top_l.x << ", " << out_block.sb_info.top_l.y << ")";
+    cout << ", Block Anchor: (" << out_block.anchor.x << ", " << out_block.anchor.y << ")\n";
+    for(int i=0; i<out_block.rate_dis.size(); i++){
+        cout << "\t" << i << " length: " << out_block.rate_dis[i].first << " dist: " << out_block.rate_dis[i].second << endl;
+    }
+}
+
+void BitPlaneEncoderRD::print_wavelets(){
+    cout << "Reconstructed Wavelet Coefficients:\n";
+    for(int i=0; i<rows; i++){
+        for(int j=0; j<cols; j++){
+            cout << wavelet_coeffs[i*cols + j] << "\t";
+        }
+        cout << "\n";
+    }
+}
+
+void BitPlaneEncoderRD::print_implied(){
+    cout << "Reconstructed Implied Coefficients:\n";
+    for(int i=0; i<rows; i++){
+        for(int j=0; j<cols; j++){
+            cout << implied_coeffs[i*cols + j] << "\t";
+        }
+        cout << "\n";
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
